@@ -3314,7 +3314,7 @@ class DAG(BaseDag, LoggingMixin):
             end_date = None
         return utils_date_range(
             start_date=start_date, end_date=end_date,
-            num=num, delta=self._schedule_interval)
+            num=num, delta=self._schedule_interval or timedelta(days=1))
 
     def following_schedule(self, dttm):
         """
