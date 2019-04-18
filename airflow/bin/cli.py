@@ -26,6 +26,7 @@ import subprocess
 import textwrap
 import random
 import string
+from datetime import datetime
 from importlib import import_module
 
 import getpass
@@ -230,10 +231,13 @@ def trigger_dag(args):
     """
     log = LoggingMixin().log
     try:
+        if not args.exec_date:
+            args.exec_date = datetime.utcnow()
+        exec_date = args.exec_date.replace(hour=0, minute=0, second=0, microsecond=0)
         message = api_client.trigger_dag(dag_id=args.dag_id,
                                          run_id=args.run_id,
                                          conf=args.conf,
-                                         execution_date=args.exec_date)
+                                         execution_date=exec_date)
     except IOError as err:
         log.error(err)
         raise AirflowException(err)
