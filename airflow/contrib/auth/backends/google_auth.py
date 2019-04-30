@@ -67,7 +67,12 @@ class GoogleUser(models.User):
 
     def is_superuser(self):
         """Access all the things"""
-        return True
+        # This will check for users in the airflow database. 
+        # False will be if the user doesn't exist in the db,
+        # or isn't a super user (checkbox option). This will
+        # allow us to add DI members as super users to kick
+        # off dags
+        super(GoogleUser, self).is_superuser()
 
 
 class AuthenticationError(Exception):
