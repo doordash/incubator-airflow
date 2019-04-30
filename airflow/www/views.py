@@ -1058,12 +1058,12 @@ class Airflow(BaseView):
         from airflow.api.common.experimental import delete_dag
         from airflow.exceptions import DagNotFound, DagFileExists
 
-        if not current_user.is_superuser:
-            flash("Not authorized to perform this action")
-            return redirect(request.referrer)
-
         dag_id = request.args.get('dag_id')
         origin = request.args.get('origin') or "/admin/"
+
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(origin)
 
         try:
             delete_dag.delete_dag(dag_id)
