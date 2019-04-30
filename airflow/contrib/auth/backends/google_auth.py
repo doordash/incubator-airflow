@@ -72,7 +72,7 @@ class GoogleUser(models.User):
         # or isn't a super user (checkbox option). This will
         # allow us to add DI members as super users to kick
         # off dags
-        super(GoogleUser, self).is_superuser()
+        return self.user.email in AUTHORIZED_USERS or super(GoogleUser, self).is_superuser()
 
 
 class AuthenticationError(Exception):
@@ -179,7 +179,7 @@ class GoogleAuthBackend(object):
             user = models.User(
                 username=username,
                 email=email,
-                is_superuser=False)
+                is_superuser=email in AUTHORIZED_USERS)
 
         session.merge(user)
         session.commit()
