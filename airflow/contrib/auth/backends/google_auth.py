@@ -32,10 +32,10 @@ from airflow.utils.log.logging_mixin import LoggingMixin
 
 log = LoggingMixin().log
 
-
 def get_config_param(param):
     return str(configuration.conf.get('google', param))
 
+AUTHORIZED_USERS = get_config_param("airflow_account_admins").split(",")
 
 class GoogleUser(models.User):
 
