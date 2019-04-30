@@ -366,6 +366,10 @@ def get_date_time_num_runs_dag_runs_form_data(request, session, dag):
 
 
 class Airflow(BaseView):
+    def render(self, *args, **kwargs):
+        kwargs['is_superuser'] = current_user.is_superuser()
+        return super(Airflow, self).render(*args, **kwargs)
+
     def is_visible(self):
         return False
 
@@ -986,6 +990,9 @@ class Airflow(BaseView):
         dag = dagbag.get_dag(dag_id)
         task = dag.get_task(task_id)
 
+        if not current_user.is_superuser:
+            flash("Not authorized to run task")
+            redirect(origin)
         execution_date = request.args.get('execution_date')
         execution_date = pendulum.parse(execution_date)
         ignore_all_deps = request.args.get('ignore_all_deps') == "true"
@@ -1051,6 +1058,10 @@ class Airflow(BaseView):
         from airflow.api.common.experimental import delete_dag
         from airflow.exceptions import DagNotFound, DagFileExists
 
+        if not current_user.is_superuser:
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
+
         dag_id = request.args.get('dag_id')
         origin = request.args.get('origin') or "/admin/"
 
@@ -1077,6 +1088,10 @@ class Airflow(BaseView):
         dag_id = request.args.get('dag_id')
         origin = request.args.get('origin') or "/admin/"
         dag = dagbag.get_dag(dag_id)
+
+        if not current_user.is_superuser():
+            flash("Not authorized to run dag")
+            return redirect(origin)
 
         if not dag:
             flash("Cannot find dag {}".format(dag_id))
@@ -2065,6 +2080,10 @@ class Airflow(BaseView):
 
 
 class HomeView(AdminIndexView):
+    def render(self, *args, **kwargs):
+        kwargs['is_superuser'] = current_user.is_superuser()
+        return super(HomeView, self).render(*args, **kwargs)
+
     @expose("/")
     @login_required
     @provide_session

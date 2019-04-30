@@ -146,6 +146,7 @@
             View Log
           </button>
           <hr/>
+	  {% if is_superuser %}
           <button id="btn_run" type="button" class="btn btn-primary"
             title="Runs a single task instance">
             Run
@@ -232,6 +233,7 @@
               Downstream
             </button>
           </span>
+	  {% endif %}
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-default" data-dismiss="modal">
