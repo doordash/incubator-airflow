@@ -1874,6 +1874,9 @@ class Airflow(BaseView):
     @wwwutils.action_logging
     @provide_session
     def paused(self, session=None):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         DagModel = models.DagModel
         dag_id = request.args.get('dag_id')
         orm_dag = session.query(
