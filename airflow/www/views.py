@@ -367,8 +367,12 @@ def get_date_time_num_runs_dag_runs_form_data(request, session, dag):
 
 class Airflow(BaseView):
     def render(self, *args, **kwargs):
-        kwargs['is_superuser'] = current_user.is_superuser()
-        return super(Airflow, self).render(*args, **kwargs)
+        try:
+            kwargs['is_superuser'] = current_user.is_superuser()
+            return super(Airflow, self).render(*args, **kwargs)
+        except AttributeError:
+            return super(Airflow, self).render(*args, **kwargs)
+
 
     def is_visible(self):
         return False
@@ -990,7 +994,7 @@ class Airflow(BaseView):
         dag = dagbag.get_dag(dag_id)
         task = dag.get_task(task_id)
 
-        if not current_user.is_superuser:
+        if not current_user.is_superuser():
             flash("Not authorized to run task")
             redirect(origin)
         execution_date = request.args.get('execution_date')
@@ -2319,6 +2323,13 @@ class ModelViewOnly(wwwutils.LoginMixin, AirflowModelView):
     can_delete = False
     column_display_pk = True
 
+    def render(self, *args, **kwargs):
+        try:
+            kwargs['is_superuser'] = current_user.is_superuser()
+            return super(ModelViewOnly, self).render(*args, **kwargs)
+        except AttributeError:
+            return super(ModelViewOnly, self).render(*args, **kwargs)
+
 
 class PoolModelView(wwwutils.SuperUserMixin, AirflowModelView):
     column_list = ('pool', 'slots', 'used_slots', 'queued_slots')
@@ -2694,7 +2705,7 @@ class DagRunModelView(ModelViewOnly):
             ('success', 'success'),
             ('running', 'running'),
             ('failed', 'failed'),
-        ],
+        ] if current_user and current_user.is_superuser() else [],
     }
     form_args = dict(
         dag_id=dict(validators=[validators.DataRequired()])
@@ -2715,6 +2726,9 @@ class DagRunModelView(ModelViewOnly):
     @action('new_delete', "Delete", "Are you sure you want to delete selected records?")
     @provide_session
     def action_new_delete(self, ids, session=None):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         deleted = set(session.query(models.DagRun)
                       .filter(models.DagRun.id.in_(ids))
                       .all())
@@ -2730,6 +2744,9 @@ class DagRunModelView(ModelViewOnly):
     @action('set_running', "Set state to 'running'", None)
     @provide_session
     def action_set_running(self, ids, session=None):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         try:
             DR = models.DagRun
             count = 0
@@ -2751,6 +2768,9 @@ class DagRunModelView(ModelViewOnly):
             "All running task instances would also be marked as failed, are you sure?")
     @provide_session
     def action_set_failed(self, ids, session=None):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         try:
             DR = models.DagRun
             count = 0
@@ -2778,6 +2798,9 @@ class DagRunModelView(ModelViewOnly):
             "All task instances would also be marked as success, are you sure?")
     @provide_session
     def action_set_success(self, ids, session=None):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         try:
             DR = models.DagRun
             count = 0
@@ -2804,6 +2827,9 @@ class DagRunModelView(ModelViewOnly):
     # Called after editing DagRun model in the UI.
     @provide_session
     def after_model_change(self, form, dagrun, is_created, session=None):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         altered_tis = []
         if dagrun.state == State.SUCCESS:
             altered_tis = set_dag_run_state_to_success(
@@ -2869,7 +2895,7 @@ class TaskInstanceModelView(ModelViewOnly):
             ('success', 'success'),
             ('running', 'running'),
             ('failed', 'failed'),
-        ],
+        ] if current_user and current_user.is_superuser() else [],
     }
     column_list = (
         'state', 'dag_id', 'task_id', 'execution_date', 'operator',
@@ -2880,18 +2906,30 @@ class TaskInstanceModelView(ModelViewOnly):
 
     @action('set_running', "Set state to 'running'", None)
     def action_set_running(self, ids):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         self.set_task_instance_state(ids, State.RUNNING)
 
     @action('set_failed', "Set state to 'failed'", None)
     def action_set_failed(self, ids):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         self.set_task_instance_state(ids, State.FAILED)
 
     @action('set_success', "Set state to 'success'", None)
     def action_set_success(self, ids):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         self.set_task_instance_state(ids, State.SUCCESS)
 
     @action('set_retry', "Set state to 'up_for_retry'", None)
     def action_set_retry(self, ids):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         self.set_task_instance_state(ids, State.UP_FOR_RETRY)
 
     @provide_session
@@ -2901,6 +2939,9 @@ class TaskInstanceModelView(ModelViewOnly):
                 'Are you sure you want to clear the state of the selected task instance(s)'
                 ' and set their dagruns to the running state?'))
     def action_clear(self, ids, session=None):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         try:
             TI = models.TaskInstance
 
@@ -2939,6 +2980,9 @@ class TaskInstanceModelView(ModelViewOnly):
 
     @provide_session
     def set_task_instance_state(self, ids, target_state, session=None):
+        if not current_user.is_superuser():
+            flash("Not authorized to perform this action")
+            return redirect(request.referrer)
         try:
             TI = models.TaskInstance
             count = len(ids)
